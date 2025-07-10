@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Barbería - Reserva de citas</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background: #f4f4f4;
+  }
+  h1, h2 {
+    color: #333;
+  }
+  form {
+    background: white;
+    padding: 20px;
+    margin-bottom: 30px;
+    border-radius: 8px;
+    max-width: 400px;
+  }
+  label {
+    display: block;
+    margin-top: 15px;
+  }
+  select, input[type="text"], input[type="email"], input[type="tel"], input[type="date"] {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+  }
+  button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #555;
+  }
+  .error {
+    color: red;
+    margin-top: 5px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 700px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+  }
+  th {
+    background: #333;
+    color: white;
+  }
+  .admin-section {
+    margin-top: 40px;
+  }
+  .btn-delete {
+    background: #cc3333;
+    border: none;
+    padding: 5px 10px;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .btn-delete:hover {
+    background: #aa0000;
+  }
+</style>
+</head>
+<body>
+
+<h1>Barbería - Reserva de Citas</h1>
+
+<form id="reservationForm">
+  <label for="name">Nombre completo:</label>
+  <input type="text" id="name" required />
+
+  <label for="phone">Número de celular:</label>
+  <input type="tel" id="phone" pattern="[0-9]{7,15}" placeholder="Solo números, mínimo 7 dígitos" required />
+
+  <label for="email">Correo electrónico:</label>
+  <input type="email" id="email" required />
+
+  <label for="date">Selecciona fecha:</label>
+  <input type="date" id="date" required min="" />
+
+  <label for="time">Selecciona hora (intervalos de 55 minutos de 9am a 9pm):</label>
+  <select id="time" required>
+    <!-- Opciones generadas por JS -->
+  </select>
+
+  <label for="barber">Selecciona barbero:</label>
+  <select id="barber" required>
+    <option value="1">#1 SABALETA</option>
+    <option value="2">#2 ASTRO</option>
+  </select>
+
+  <div id="errorMsg" class="error"></div>
+
+  <button type="submit">Reservar Cita</button>
+</form>
+
+<div class="admin-section">
+  <h2>Gestión de Citas (Administrador)</h2>
+  <table id="appointmentsTable">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Celular</th>
+        <th>Email</th>
+        <th>Fecha</th>
+        <th>Hora</th>
+        <th>Barbero</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Citas aparecerán aquí -->
+    </tbody>
+  </table>
+</div>
+
+<script>
+const reservationForm = document.getElementById('reservationForm');
+const dateInput = document.getElementById('date');
+const timeSelect = document.getElementById('time');
+const barberSelect = document.getElementById('barber');
+const errorMsg = document.getElementById('errorMsg');
+const appointmentsTableBody = document.querySelector('#appointmentsTable tbody');
+
+const openHour = 9;
+const closeHour = 21;
+const intervalMinutes = 55;
+const barbers = {1: 'SABALETA', 2: 'ASTRO'};
+
+function setMinDate(){
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth()+1).padStart(2,'0');
+  const dd = String(today.getDate()).padStart(2,'0');
+  dateInput.min = `${yyyy}-${mm}-${dd}`;
+}
+setMinDate();
+
+function fillTimeOptions(){
+  timeSelect.innerHTML = '';
+  for(let h = openHour; h < closeHour;){
+    const hourStr = String(h).padStart(2,'0');
+    timeSelect.innerHTML += `<option value="${hourStr}:00">${hourStr}:00</option>`;
+    let next = new Date();
+    next.setHours(h);
+    next.setMinutes(0 + intervalMinutes);
+    h = next.getHours();
+  }
+}
+fillTimeOptions();
+
+dateInput.addEventListener('change', () => {
+  errorMsg.textContent = '';
+  const selectedDate = new Date(dateInput.value + 'T00:00');
+  const day = selectedDate.getDay();
+  if(day === 3) {
+    barberSelect.value = '2';
+    barberSelect.disabled = true;
+  } else {
+    barberSelect.disabled = false;
+  }
+});
+
+function loadAppointments(){
+  const appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+  appointmentsTableBody.innerHTML = '';
+  if(appointments.length === 0){
+    appointmentsTableBody.innerHTML = `<tr><td colspan="7">No hay citas reservadas</td></tr>`;
+    return;
+  }
+  appointments.forEach((appt, idx) => {
+    appointmentsTableBody.innerHTML += `
+      <tr>
+        <td>${appt.name}</td>
+        <td>${appt.phone}</td>
+        <td>${appt.email}</td>
+        <td>${appt.date}</td>
+        <td>${appt.time}</td>
+        <td>#${appt.barber} ${barbers[appt.barber]}</td>
+        <td><button class="btn-delete" data-index="${idx}">Eliminar</button></td>
+      </tr>
+    `;
+  });
+  document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = e.target.dataset.index;
+      deleteAppointment(idx);
+    });
+  });
+}
+
+function deleteAppointment(index){
+  let appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+  appointments.splice(index,1);
+  localStorage.setItem('appointments', JSON.stringify(appointments));
+  loadAppointments();
+}
+
+reservationForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  errorMsg.style.color = 'red';
+  errorMsg.textContent = '';
+
+  const name = document.getElementById('name').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const date = dateInput.value;
+  const time = timeSelect.value;
+  const barber = barberSelect.value;
+
+  if(!name || !phone || !email || !date || !time || !barber){
+    errorMsg.textContent = 'Por favor completa todos los campos.';
+    return;
+  }
+
+  const selectedDate = new Date(date + 'T00:00');
+  const day = selectedDate.getDay();
+
+  if(day === 3 && barber !== '2'){
+    errorMsg.textContent = 'Los miércoles solo están disponibles citas con el barbero #2 ASTRO.';
+    return;
+  }
+
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  if(selectedDate < now){
+    errorMsg.textContent = 'No puedes reservar para una fecha pasada.';
+    return;
+  }
+
+  let appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+  const conflict = appointments.find(appt => appt.date === date && appt.time === time && appt.barber === barber);
+  if(conflict){
+    errorMsg.textContent = 'Ese horario ya está reservado para el barbero seleccionado.';
+    return;
+  }
+
+  appointments.push({name, phone, email, date, time, barber});
+  localStorage.setItem('appointments', JSON.stringify(appointments));
+  loadAppointments();
+
+  reservationForm.reset();
+  barberSelect.disabled = false;
+  errorMsg.style.color = 'green';
+  errorMsg.textContent = 'Cita reservada con éxito.';
+  setTimeout(() => {
+    errorMsg.textContent = '';
+    errorMsg.style.color = 'red';
+  }, 4000);
+});
+
+loadAppointments();
+</script>
+
+</body>
+</html>
