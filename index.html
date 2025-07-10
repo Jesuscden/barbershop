@@ -48,7 +48,7 @@
   table {
     border-collapse: collapse;
     width: 100%;
-    max-width: 700px;
+    max-width: 800px;
     background: white;
     border-radius: 8px;
     overflow: hidden;
@@ -96,14 +96,18 @@
   <input type="date" id="date" required min="" />
 
   <label for="time">Selecciona hora (intervalos de 55 minutos de 9am a 9pm):</label>
-  <select id="time" required>
-    <!-- Opciones generadas por JS -->
-  </select>
+  <select id="time" required></select>
 
   <label for="barber">Selecciona barbero:</label>
   <select id="barber" required>
     <option value="1">#1 SABALETA</option>
     <option value="2">#2 ASTRO</option>
+  </select>
+
+  <label for="service">Selecciona el servicio:</label>
+  <select id="service" required>
+    <option value="">-- Selecciona un servicio --</option>
+    <option value="CORTE $7">CORTE $7</option>
   </select>
 
   <div id="errorMsg" class="error"></div>
@@ -122,12 +126,11 @@
         <th>Fecha</th>
         <th>Hora</th>
         <th>Barbero</th>
+        <th>Servicio</th>
         <th>Acción</th>
       </tr>
     </thead>
-    <tbody>
-      <!-- Citas aparecerán aquí -->
-    </tbody>
+    <tbody></tbody>
   </table>
 </div>
 
@@ -136,6 +139,7 @@ const reservationForm = document.getElementById('reservationForm');
 const dateInput = document.getElementById('date');
 const timeSelect = document.getElementById('time');
 const barberSelect = document.getElementById('barber');
+const serviceSelect = document.getElementById('service');
 const errorMsg = document.getElementById('errorMsg');
 const appointmentsTableBody = document.querySelector('#appointmentsTable tbody');
 
@@ -182,7 +186,7 @@ function loadAppointments(){
   const appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
   appointmentsTableBody.innerHTML = '';
   if(appointments.length === 0){
-    appointmentsTableBody.innerHTML = `<tr><td colspan="7">No hay citas reservadas</td></tr>`;
+    appointmentsTableBody.innerHTML = `<tr><td colspan="8">No hay citas reservadas</td></tr>`;
     return;
   }
   appointments.forEach((appt, idx) => {
@@ -194,6 +198,7 @@ function loadAppointments(){
         <td>${appt.date}</td>
         <td>${appt.time}</td>
         <td>#${appt.barber} ${barbers[appt.barber]}</td>
+        <td>${appt.service}</td>
         <td><button class="btn-delete" data-index="${idx}">Eliminar</button></td>
       </tr>
     `;
@@ -224,8 +229,9 @@ reservationForm.addEventListener('submit', (e) => {
   const date = dateInput.value;
   const time = timeSelect.value;
   const barber = barberSelect.value;
+  const service = serviceSelect.value;
 
-  if(!name || !phone || !email || !date || !time || !barber){
+  if(!name || !phone || !email || !date || !time || !barber || !service){
     errorMsg.textContent = 'Por favor completa todos los campos.';
     return;
   }
@@ -252,7 +258,7 @@ reservationForm.addEventListener('submit', (e) => {
     return;
   }
 
-  appointments.push({name, phone, email, date, time, barber});
+  appointments.push({name, phone, email, date, time, barber, service});
   localStorage.setItem('appointments', JSON.stringify(appointments));
   loadAppointments();
 
